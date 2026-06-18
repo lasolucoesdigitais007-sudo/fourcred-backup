@@ -1,0 +1,6 @@
+{
+  "name": "Fourcred Ficha Digital",
+  "description": "Ficha cadastral digital para captação de dados de financiamento imobiliário.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
