@@ -10,11 +10,22 @@ View your app in AI Studio: https://ai.studio/apps/313f890d-0103-43ce-9029-9014a
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
-
+**Prerequisites:** Node.js
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+2. Copy `.env.example` to `.env` and configure your Firebase service account credentials.
 3. Run the app:
    `npm run dev`
+
+## Firebase Integration
+
+This project uses Firebase Admin for server-side Firestore access.
+
+- Use `FIREBASE_SERVICE_ACCOUNT_PATH` to point to a local service account JSON file.
+- Or use `FIREBASE_SERVICE_ACCOUNT_JSON` to pass the JSON directly.
+
+The submission API writes the form data into Firestore under:
+
+- `submissions` collection
+- `clients` collection (indexed by P1 CPF if available)

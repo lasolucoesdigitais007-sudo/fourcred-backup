@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
 import { FormData } from '../types';
 import { Input, Select, Textarea, SimNaoButtons } from '../components/FormFields';
 import { DocumentScanner } from '../components/DocumentScanner';
 
 export default function ClientForm() {
   const { register, handleSubmit, watch, setValue, trigger, formState: { errors } } = useForm<FormData>();
-  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
 
   const hasP2 = watch('hasP2');
   const usedFgts = watch('usedFgts');
@@ -205,17 +204,38 @@ export default function ClientForm() {
     setValue('p2.zipCode', watch('p1.zipCode'));
   };
 
-  const onSubmit = (data: FormData) => {
+  const onSubmit = async (data: FormData) => {
+    setSubmitting(true);
+
     const fullData = {
       ...data,
       id: Math.random().toString(36).substring(2, 9),
-      submittedAt: new Date().toISOString()
+      submittedAt: new Date().toISOString(),
     };
-    const existing = JSON.parse(localStorage.getItem('fourcred_submissions') || '[]');
-    existing.push(fullData);
-    localStorage.setItem('fourcred_submissions', JSON.stringify(existing));
-    alert('Ficha cadastral enviada com sucesso!');
-    window.location.reload();
+
+    try {
+      const response = await fetch('/api/submissions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(fullData),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(errorBody?.error || 'Erro ao enviar a submissão.');
+      }
+
+      const result = await response.json();
+      alert(`Ficha cadastral enviada com sucesso! ID: ${result.id}`);
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Submission error:', error);
+      alert(`Falha ao enviar a ficha: ${error.message || 'Erro desconhecido'}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const stepsHeader = [
@@ -534,9 +554,10 @@ export default function ClientForm() {
               ) : (
                 <button
                   type="submit"
-                  className="px-10 py-3.5 bg-[#FF6B1A] text-white font-bold rounded-xl text-[14px] shadow-[0_4px_14px_rgba(255,107,26,0.3)] hover:bg-[#E85D04] transition-all focus:outline-none flex items-center justify-center gap-2 w-full sm:w-auto"
+                  disabled={submitting}
+                  className={`px-10 py-3.5 bg-[#FF6B1A] text-white font-bold rounded-xl text-[14px] shadow-[0_4px_14px_rgba(255,107,26,0.3)] hover:bg-[#E85D04] transition-all focus:outline-none flex items-center justify-center gap-2 w-full sm:w-auto ${submitting ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
-                  Enviar Proposta de Financiamento ✓
+                  {submitting ? 'Enviando...' : 'Enviar Proposta de Financiamento ✓'}
                 </button>
               )}
             </div>
