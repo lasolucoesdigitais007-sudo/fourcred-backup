@@ -1,0 +1,73 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Função helper: verificar se o usuário é admin
+    function isAdmin() {
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // === CLIENTS - Dados dos clientes ===
+    match /clients/{clientId} {
+      // Apenas admins podem ler clientes
+      allow read: if isAdmin();
+      
+      // Apenas admins podem escrever clientes
+      allow write: if isAdmin();
+      
+      // Subcollection: submissions de um cliente
+      match /submissions/{submissionId} {
+        allow read, write: if isAdmin();
+      }
+      
+      // Subcollection: documentos (anexos) de um cliente
+      match /documents/{documentId} {
+        allow read, write: if isAdmin();
+      }
+    }
+    
+    // === SUBMISSIONS - Histórico de submissões ===
+    match /submissions/{submissionId} {
+      // Apenas admins podem ler submissões
+      allow read: if isAdmin();
+      
+      // Qualquer um pode criar uma submissão (POST do formulário)
+      // Valida se tem campos obrigatórios
+      allow create: if 
+        request.auth == null && // Permite submissão sem autenticação
+        request.resource.data.keys().hasAll(['clientId', 'p1', 'submittedAt', 'createdAt']) &&
+        request.resource.data.p1.keys().hasAll(['fullName', 'cpf', 'email']) &&
+        request.size() < 5000000; // Máximo 5MB por documento
+      
+      // Apenas admins podem atualizar submissões
+      allow update: if isAdmin();
+      
+      // Apenas admins podem deletar submissões
+      allow delete: if isAdmin();
+    }
+    
+    // === PROPERTIES - Imóveis/Propriedades ===
+    match /properties/{propertyId} {
+      // Leitura pública de propriedades
+      allow read: if true;
+      
+      // Apenas admins podem escrever propriedades
+      allow write: if isAdmin();
+    }
+    
+    // === ADMINS - Configuração de admins ===
+    match /admins/{userId} {
+      // Apenas admins podem ler lista de admins
+      allow read: if isAdmin();
+      
+      // Apenas admins podem modificar admins
+      allow write: if isAdmin();
+    }
+    
+    // === DEFAULT - Negar tudo mais ===
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
